@@ -1,0 +1,8 @@
+matplotlib==3.10.8
+pandas==2.1.2
+numpy==1.26.4
+snapatac2==2.8.0
+macs3==3.0.3
+plotly==6.1.1
+scanpy==1.11.5
+
