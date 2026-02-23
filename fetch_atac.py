@@ -76,6 +76,11 @@ def download_fragments(accession: str, threads: int):
 
 if __name__ == '__main__':
 
+    if not os.path.exists("./hg38.index") or not os.path.exists("./hg38.fa"):
+        print("Please download hg38 reference genome and index files from NCBI and place them in the current directory.")
+        print("Should be named hg38.fa and hg38.index, respectively in root directory.")
+        quit()
+
     sampleName = input("Please enter desired sample name:\n")
     accession = input("Please enter accession number:\n")
     download_option = input("Would you like to download the fragments for this run? \n   - (0): No \n   - (1): Yes\n")
