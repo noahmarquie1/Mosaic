@@ -24,24 +24,24 @@ def fragments_to_bedpe(input_file, output_file):
         print(f"Error during conversion: {e}")
 
 
-def call_peaks(input_file):
+def call_peaks(input_file, sample_name):
     command = [
         "macs3", "callpeak",
         "-t", input_file,
-        "-f", "BEDPE",  # Uses the full fragment span
-        "-g", "hs",  # Effective genome size
-        "-n", "sample01_data/bed/macs3_out/sample01",  # Output prefix
-        "-B",  # Generate bedGraph signal tracks
-        "-q", "0.01",  # FDR threshold (stringent)
-        "--nomodel",  # Skip model building (already have fragments)
-        "--call-summits",  # Required for finding exact centers
-        "--keep-dup", "all"  # Keep all fragments (standard for ATAC)
+        "-f", "BEDPE",
+        "-g", "hs",
+        "-n", f"{sample_name}_data/bed/macs3_out/{sample_name}",
+        "-B",
+        "-q", "0.01",
+        "--nomodel",
+        "--call-summits",
+        "--keep-dup", "all"
     ]
     try:
         subprocess.run(command, check=True)
         print(f"Successfully called peaks for {input_file}")
     except subprocess.CalledProcessError as e:
-        print(f"Error during peak calling: {e}")
+        print(f"Error during conversion: {e}")
 
 
 def load_narrowpeak(narrowpeak_file: str) -> pd.DataFrame:
@@ -87,6 +87,7 @@ if __name__ == "__main__":
 
     if instruction == 1:
         fragments_to_bedpe(f"{sampleName}_data/fragments/fragments.tsv", f"{sampleName}_data/bed/{sampleName}.bedpe")
+        call_peaks(f"{sampleName}_data/bed/{sampleName}.bedpe", sampleName)
     else:
         if instruction != 2:
             print("Invalid input. Please enter 1 or 2.\n")
