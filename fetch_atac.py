@@ -113,6 +113,3 @@ if __name__ == '__main__':
         case "1":
             print("Downloading fragments...")
             download_fragments(accession=accession, threads=threads)
-
-
-

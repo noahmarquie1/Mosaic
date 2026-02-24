@@ -2,6 +2,12 @@ from pathlib import Path
 import snapatac2 as snap
 from snapatac2.genome import hg38
 import subprocess
+import pandas as pd
+
+narrowpeak_cols = [
+    "chrom", "start", "end", "name", "score", "strand",
+    "signalValue", "pValue", "qValue", "peak"
+]
 
 def fragments_to_bedpe(input_file, output_file):
     command = [
@@ -37,21 +43,62 @@ def call_peaks(input_file):
     except subprocess.CalledProcessError as e:
         print(f"Error during peak calling: {e}")
 
-#fragments_to_bedpe("sample01_data/fragments/fragments.tsv", "sample01_data/bed/sample01.bedpe")
-call_peaks("sample01_data/bed/sample01.bedpe")
+
+def load_narrowpeak(narrowpeak_file: str) -> pd.DataFrame:
+    return pd.read_csv(
+        narrowpeak_file, sep="\t", header=None, names=narrowpeak_cols
+    )
 
 
-quit()
-adata = snap.pp.import_fragments(
-    Path("sample01_data/fragments/fragments.tsv"),
-    chrom_sizes=hg38,
-    file=Path("sample01_data/output/sample_01_anndata.h5ad"),
-    min_num_fragments=0,
-    sorted_by_barcode=False
-)
-print("Finished importing fragments.")
+def filter_by_qvalue(peaks: pd.DataFrame, min_lgq: float = 2.0) -> pd.DataFrame:
+    return peaks[peaks["qValue"] > min_lgq].reset_index(drop=True)
 
-snap.pp.add_tile_matrix(adata)
-snap.pp.select_features(adata, n_features=1000)
-adata.close()
+
+def remove_blacklisted_peaks(peaks: pd.DataFrame, blacklist_bed: str) -> pd.DataFrame:
+    blacklist = pd.read_csv(
+        blacklist_bed, sep="\t", header=None,
+        usecols=[0, 1, 2], names=["chrom", "start", "end"]
+    )
+
+    merged = peaks.reset_index().merge(blacklist, on="chrom", suffixes=("", "_bl"))
+    blacklisted_mask = (
+        (merged["start"] < merged["end_bl"]) &
+        (merged["end"] > merged["start_bl"])
+    )
+
+    blacklisted_original_idx = merged.loc[blacklisted_mask, "index"].unique()
+    return peaks.drop(index=blacklisted_original_idx).reset_index(drop=True)
+
+
+def write_narrowpeak(peaks: pd.DataFrame, output_file: str):
+    peaks.to_csv(output_file, sep="\t", header=False, index=False)
+
+
+if __name__ == "__main__":
+    instruction = ""
+    while type(instruction) != int:
+        instruction = input("Are you converting from fragments or narrowPeak files? (1/2)\n")
+        try:
+            instruction = int(instruction)
+        except ValueError:
+            print("Invalid input. Please enter an integer.\n")
+
+    sampleName = input("Please enter desired sample name:\n")
+
+    if instruction == 1:
+        fragments_to_bedpe(f"{sampleName}_data/fragments/fragments.tsv", f"{sampleName}_data/bed/{sampleName}.bedpe")
+    else:
+        if instruction != 2:
+            print("Invalid input. Please enter 1 or 2.\n")
+            print("Exiting...")
+            quit()
+
+    peaks = load_narrowpeak(f"{sampleName}_data/bed/macs3_out/{sampleName}_peaks.narrowPeak")
+    peaks = filter_by_qvalue(peaks, min_lgq=2.0)
+    peaks = remove_blacklisted_peaks(peaks, "hg38_blacklist.bed")
+    write_narrowpeak(peaks, f"{sampleName}_data/bed/macs3_out/{sampleName}_filtered.narrowPeak")
+
+
+
+
 
