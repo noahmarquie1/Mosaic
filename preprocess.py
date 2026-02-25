@@ -3,6 +3,8 @@ import snapatac2 as snap
 from snapatac2.genome import hg38
 import subprocess
 import pandas as pd
+import os
+import glob
 
 narrowpeak_cols = [
     "chrom", "start", "end", "name", "score", "strand",
@@ -25,6 +27,8 @@ def fragments_to_bedpe(input_file, output_file):
 
 
 def call_peaks(input_file, sample_name):
+    if not os.path.exists(f"{sample_name}_data/bed/macs3_out/"):
+        os.makedirs(f"{sample_name}_data/bed/macs3_out/")
     command = [
         "macs3", "callpeak",
         "-t", input_file,
@@ -86,7 +90,10 @@ if __name__ == "__main__":
     sampleName = input("Please enter desired sample name:\n")
 
     if instruction == 1:
-        fragments_to_bedpe(f"{sampleName}_data/fragments/fragments.tsv", f"{sampleName}_data/bed/{sampleName}.bedpe")
+        if not os.path.exists(f"{sampleName}_data/bed/"):
+            os.makedirs(f"{sampleName}_data/bed/")
+        tsv_file = glob.glob(f"{sampleName}_data/fragments/*.tsv")[0]
+        fragments_to_bedpe(tsv_file, f"{sampleName}_data/bed/{sampleName}.bedpe")
         call_peaks(f"{sampleName}_data/bed/{sampleName}.bedpe", sampleName)
     else:
         if instruction != 2:
