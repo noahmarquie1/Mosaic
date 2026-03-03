@@ -4,6 +4,7 @@ from scipy.stats import rankdata
 import snapatac2 as snap
 from snapatac2.genome import hg38
 from pathlib import Path
+import os
 
 def build_peak_index(universe: pd.DataFrame) -> dict:
     index = {}
@@ -96,20 +97,51 @@ def build_count_matrix(sample_fragments: dict[str, str],
 
 def build_binned_count_matrix(sample_fragments: dict[str, str],
                               barcode_mapping: pd.Series,
-                              bin_size: int = 500,
-                              max_fragments: int = None) -> pd.DataFrame:
+                              bin_size: int = 500) -> pd.DataFrame:
     adatas = []
-    for i, path in enumerate(sample_fragments.values()):
-        print(f"Counting fragments for {path} ...")
-        adata = snap.pp.import_fragments(
-            Path("sample02_data/fragments/SRR13252435_fragments.tsv"),
-            chrom_sizes=hg38,
-            sorted_by_barcode=False,
-            file=Path(f"binned_fragments/sample{i}_adata.h5ad"),
-        )
-        adatas.append((f"sample{i}_adata", adata))
+    input_num = ""
+    while type(input_num) != int:
+        input_num = input("Would you like to build a count matrix from fragments (0) or AnnData (1)?")
+        try:
+            input_num = int(input_num)
+        except ValueError:
+            print("Invalid input. Please enter an integer.")
 
-    combined_data = snap.AnnDataSet(adatas=adatas, filename="binned_fragments/combined.h5ads")
+    if input_num == 0:
+        for i, path in enumerate(sample_fragments.values()):
+            print(f"Counting fragments for {path} ...")
+            adata = snap.pp.import_fragments(
+                Path("sample02_data/fragments/SRR13252435_fragments.tsv"),
+                chrom_sizes=hg38,
+                sorted_by_barcode=False,
+                file=Path(f"binned_fragments/sample{i}_adata.h5ad"),
+            )
+
+            snap.pp.add_tile_matrix(
+                adata,
+                bin_size=bin_size,
+                inplace=True
+            )
+            adatas.append((f"sample{i}_adata", adata))
+            combined_data = snap.AnnDataSet(adatas=adatas, filename="binned_fragments/combined.h5ads")
+
+    elif input_num == 1:
+        dir = input("Please enter the path to the AnnData files: ")
+        files = [
+            os.path.join(dir, f)
+            for f in os.listdir(dir)
+            if f.endswith(".h5ad")
+        ]
+        adatas = []
+        for i, file in enumerate(files):
+            adata = snap.read(Path("binned_fragments/sample01_adata.h5ad"), backed="r+")
+            adatas.append((f"sample{i}_adata", adata))
+
+        combined_data = snap.AnnDataSet(adatas=adatas, filename="binned_fragments/combined.h5ads")
+    else:
+        print("Invalid input. Please enter 0 or 1. Quitting program")
+        quit()
+
     barcode_mapping = barcode_mapping[~barcode_mapping.index.duplicated(keep='first')]
 
     combined_data.obs["cell_type"] = barcode_mapping.reindex(combined_data.obs_names).fillna("Unknown")
