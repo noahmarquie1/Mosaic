@@ -126,7 +126,7 @@ def read_binned_fragments(binned_fragments_file: str) -> snap.AnnDataSet:
 def build_binned_count_matrix(combined_data: snap.AnnDataSet) -> pd.DataFrame:
     snap.pp.select_features(
         combined_data,
-        n_features=50000,
+        n_features=50_000,
         inplace=True
     )
     selected_mask = np.array(combined_data.var['selected'])

@@ -1,6 +1,8 @@
 import pandas as pd
 from scipy.optimize import nnls
 from sklearn.linear_model import ElasticNet
+from sklearn.svm import NuSVR
+from sklearn.inspection import permutation_importance
 
 def nnls_deconvolve(signature_matrix: pd.DataFrame,
                mixture_vector: pd.Series) -> pd.Series:
@@ -25,6 +27,22 @@ def elastic_net_deconvolve(signature_matrix: pd.DataFrame,
     model = ElasticNet(alpha=0.01, l1_ratio=0.5, positive=True)
     model.fit(signature_matrix, mixture_vector)
     proportions = pd.Series(model.coef_, index=signature_matrix.columns)
+
+    total = proportions.sum()
+    if total > 0:
+        proportions = proportions / total
+
+    print_proportions(proportions)
+    return proportions
+
+
+def nu_svr_deconvolve(signature_matrix: pd.DataFrame,
+                     mixture_vector: pd.Series) -> pd.Series:
+    model = NuSVR(kernel='rbf', nu=0.5, C=1.0, gamma='scale')
+    model.fit(signature_matrix, mixture_vector)
+
+    results = permutation_importance(model, signature_matrix, mixture_vector, n_repeats=10)
+    proportions = pd.Series(results.importances_mean, index=signature_matrix.columns)
 
     total = proportions.sum()
     if total > 0:

@@ -1,4 +1,4 @@
-from mosaic.deconvolve import nnls_deconvolve, elastic_net_deconvolve
+from mosaic.deconvolve import nnls_deconvolve, elastic_net_deconvolve, nu_svr_deconvolve
 from mosaic.evaluate import evaluate_deconvolution, get_true_proportions
 from mosaic.reference import create_barcode_mapping
 from mosaic.signature import *
@@ -32,7 +32,7 @@ def run_example():
     print(signature_matrix.head())
 
     mixture_vector = build_mixture_vector(
-        'sample03_data/fragments/SRR13252436_fragments.tsv',
+        'sample_data/sample03_data/fragments/SRR13252436_fragments.tsv',
         universe,
         signature_matrix,
         max_fragments=TEST_FRAGMENTS
@@ -46,11 +46,15 @@ def run_example():
 
     nnls_est_prop = nnls_deconvolve(signature_matrix, mixture_vector)
     elastic_est_prop = elastic_net_deconvolve(signature_matrix, mixture_vector)
+    nu_svr_prop = nu_svr_deconvolve(signature_matrix, mixture_vector)
+
     true_proportions = get_true_proportions(
-        "sample03_data/fragments/SRR13252436_fragments.tsv",
+        "sample_data/sample03_data/fragments/SRR13252436_fragments.tsv",
         barcode_mapping,
         max_fragments=TEST_FRAGMENTS
     )
     true_proportions = true_proportions.reindex(nnls_est_prop.index, fill_value=0.0)
+
     evaluate_deconvolution(nnls_est_prop, true_proportions)
     evaluate_deconvolution(elastic_est_prop, true_proportions)
+    evaluate_deconvolution(nu_svr_prop, true_proportions)

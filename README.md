@@ -16,4 +16,3 @@ A systematic benchmark of machine learning methods for bulk ATAC-seq deconvoluti
 3. Support Vector Regression (SVR)
 4. Random Foressts
 5. Gradient Boosting with XGBoost
-6. ...
