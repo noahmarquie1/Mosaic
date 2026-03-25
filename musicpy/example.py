@@ -59,3 +59,12 @@ def run_music_example():
     prop = music_prop(mixture_matrix, count_matrix, sc_clusters, sc_samples, True, 100)
     print("Finished estimating proportions.")
     print(prop['Est.prop.allgene'].iloc[0])
+
+    # 9. Evaluate deconvolution
+    true_proportions = get_true_proportions(
+        "sample_data/sample03_data/fragments/SRR13252436_fragments.tsv",
+        barcode_mapping,
+    )
+    est_proportions = pd.Series(prop['Est.prop.allgene'].iloc[0])
+    est_proportions = est_proportions.reindex(true_proportions.index, fill_value=0.0)
+    evaluate_deconvolution(est_proportions, true_proportions)
